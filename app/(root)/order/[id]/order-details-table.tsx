@@ -110,7 +110,7 @@ const OrderDetailsTable = ({
           })
         }
       >
-        {isPending ? 'processing...' : 'Mark As Paid'}
+        {isPending ? 'processing...' : 'Đánh dấu đã thanh toán'}
       </Button>
     );
   };
