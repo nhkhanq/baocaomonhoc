@@ -97,10 +97,10 @@ export async function getAllProducts({
       sort === 'lowest'
         ? { price: 'asc' }
         : sort === 'highest'
-        ? { price: 'desc' }
-        : sort === 'rating'
-        ? { rating: 'desc' }
-        : { createdAt: 'desc' },
+          ? { price: 'desc' }
+          : sort === 'rating'
+            ? { rating: 'desc' }
+            : { createdAt: 'desc' },
     skip: (page - 1) * limit,
     take: limit,
   });
@@ -145,7 +145,7 @@ export async function createProduct(data: z.infer<typeof insertProductSchema>) {
 
     return {
       success: true,
-      message: 'Product created successfully',
+      message: 'Sản phẩm đã được thêm thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };
@@ -171,7 +171,7 @@ export async function updateProduct(data: z.infer<typeof updateProductSchema>) {
 
     return {
       success: true,
-      message: 'Product updated successfully',
+      message: 'Sản phẩm cập nhật thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };

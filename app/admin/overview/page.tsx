@@ -12,7 +12,6 @@ import { formatCurrency, formatDateTime, formatNumber } from '@/lib/utils';
 import { BadgeDollarSign, Barcode, CreditCard, Users } from 'lucide-react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Charts from './charts';
 import { requireAdmin } from '@/lib/auth-guard';
 
 export const metadata: Metadata = {
@@ -75,19 +74,7 @@ const AdminOverviewPage = async () => {
           </CardContent>
         </Card>
       </div>
-      <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-7'>
-        <Card className='col-span-4'>
-          <CardHeader>
-            <CardTitle>Tổng Quan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Charts
-              data={{
-                salesData: summary.salesData,
-              }}
-            />
-          </CardContent>
-        </Card>
+      <div className='flex justify-center w-full lg:col-span-7'>
         <Card className='col-span-3'>
           <CardHeader>
             <CardTitle>Sản Phẩm Bán Gần Đây</CardTitle>
@@ -114,7 +101,7 @@ const AdminOverviewPage = async () => {
                     <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
                     <TableCell>
                       <Link href={`/order/${order.id}`}>
-                        <span className='px-2'>Details</span>
+                        <span className='px-2'>Chi tiết</span>
                       </Link>
                     </TableCell>
                   </TableRow>

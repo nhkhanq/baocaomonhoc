@@ -147,7 +147,7 @@ export async function createPayPalOrder(orderId: string) {
 
       return {
         success: true,
-        message: 'Item order created successfully',
+        message: 'Đơn hàng được tạo thành công',
         data: paypalOrder.id,
       };
     } else {

@@ -154,7 +154,7 @@ const SearchPage = async (props: {
           </ul>
         </div>
         {/* Price Links */}
-        <div className='text-xl mb-2 mt-8'>Price</div>
+        <div className='text-xl mb-2 mt-8'>Giá</div>
         <div>
           <ul className='space-y-1'>
             <li>
