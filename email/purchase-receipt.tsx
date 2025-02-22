@@ -35,8 +35,8 @@ PurchaseReceiptEmail.PreviewProps = {
     },
     createdAt: new Date(),
     totalPrice: '100',
-    taxPrice: '10',
-    shippingPrice: '10',
+    taxPrice: '1',
+    shippingPrice: '2',
     itemsPrice: '80',
     orderitems: sampleData.products.map((x) => ({
       name: x.name,

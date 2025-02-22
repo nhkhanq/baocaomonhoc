@@ -19,7 +19,7 @@ import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 import { getMyCart } from './cart.actions';
 
-// Sign in the user with credentials
+// Đăng nhập người dùng bằng thông tin xác thực
 export async function signInWithCredentials(
   prevState: unknown,
   formData: FormData
@@ -41,9 +41,9 @@ export async function signInWithCredentials(
   }
 }
 
-// Sign user out
+// Đăng xuất người dùng
 export async function signOutUser() {
-  // get current users cart and delete it so it does not persist to next user
+  // Lấy giỏ hàng hiện tại của người dùng và xóa để không lưu lại cho người dùng kế tiếp
   const currentCart = await getMyCart();
 
   if (currentCart?.id) {
@@ -54,7 +54,7 @@ export async function signOutUser() {
   await signOut();
 }
 
-// Sign up user
+// Đăng ký người dùng
 export async function signUpUser(prevState: unknown, formData: FormData) {
   try {
     const user = signUpFormSchema.parse({
@@ -90,7 +90,7 @@ export async function signUpUser(prevState: unknown, formData: FormData) {
   }
 }
 
-// Get user by the ID
+// Lấy thông tin người dùng theo ID
 export async function getUserById(userId: string) {
   const user = await prisma.user.findFirst({
     where: { id: userId },
@@ -99,7 +99,7 @@ export async function getUserById(userId: string) {
   return user;
 }
 
-// Update the user's address
+// Cập nhật địa chỉ người dùng
 export async function updateUserAddress(data: ShippingAddress) {
   try {
     const session = await auth();
@@ -108,7 +108,7 @@ export async function updateUserAddress(data: ShippingAddress) {
       where: { id: session?.user?.id },
     });
 
-    if (!currentUser) throw new Error('User not found');
+    if (!currentUser) throw new Error('Không tìm thấy người dùng');
 
     const address = shippingAddressSchema.parse(data);
 
@@ -119,14 +119,14 @@ export async function updateUserAddress(data: ShippingAddress) {
 
     return {
       success: true,
-      message: 'Người dùng đã cập nhật thành công',
+      message: 'Địa chỉ người dùng đã được cập nhật thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
 }
 
-// Update user's payment method
+// Cập nhật phương thức thanh toán của người dùng
 export async function updateUserPaymentMethod(
   data: z.infer<typeof paymentMethodSchema>
 ) {
@@ -136,7 +136,7 @@ export async function updateUserPaymentMethod(
       where: { id: session?.user?.id },
     });
 
-    if (!currentUser) throw new Error('User not found');
+    if (!currentUser) throw new Error('Không tìm thấy người dùng');
 
     const paymentMethod = paymentMethodSchema.parse(data);
 
@@ -147,14 +147,15 @@ export async function updateUserPaymentMethod(
 
     return {
       success: true,
-      message: 'Người dùng đã cập nhật thành công',
+      message:
+        'Phương thức thanh toán của người dùng đã được cập nhật thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
 }
 
-// Update the user profile
+// Cập nhật thông tin hồ sơ người dùng
 export async function updateProfile(user: { name: string; email: string }) {
   try {
     const session = await auth();
@@ -165,7 +166,7 @@ export async function updateProfile(user: { name: string; email: string }) {
       },
     });
 
-    if (!currentUser) throw new Error('User not found');
+    if (!currentUser) throw new Error('Không tìm thấy người dùng');
 
     await prisma.user.update({
       where: {
@@ -178,14 +179,14 @@ export async function updateProfile(user: { name: string; email: string }) {
 
     return {
       success: true,
-      message: 'Người dùng đã cập nhật thành công',
+      message: 'Thông tin người dùng đã được cập nhật thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
 }
 
-// Get all the users
+// Lấy tất cả người dùng
 export async function getAllUsers({
   limit = PAGE_SIZE,
   page,
@@ -222,7 +223,7 @@ export async function getAllUsers({
   };
 }
 
-// Delete a user
+// Xóa người dùng
 export async function deleteUser(id: string) {
   try {
     await prisma.user.delete({ where: { id } });
@@ -241,7 +242,7 @@ export async function deleteUser(id: string) {
   }
 }
 
-// Update a user
+// Cập nhật thông tin người dùng
 export async function updateUser(user: z.infer<typeof updateUserSchema>) {
   try {
     await prisma.user.update({
@@ -256,7 +257,7 @@ export async function updateUser(user: z.infer<typeof updateUserSchema>) {
 
     return {
       success: true,
-      message: 'Người dùng đã cập nhật thành công',
+      message: 'Người dùng đã được cập nhật thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };

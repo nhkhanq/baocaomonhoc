@@ -17,14 +17,14 @@ export async function getLatestProducts() {
   return convertToPlainObject(data);
 }
 
-// Get single product by it's slug
+// Get single product by its slug
 export async function getProductBySlug(slug: string) {
   return await prisma.product.findFirst({
     where: { slug: slug },
   });
 }
 
-// Get single product by it's ID
+// Get single product by its ID
 export async function getProductById(productId: string) {
   const data = await prisma.product.findFirst({
     where: { id: productId },
@@ -120,7 +120,7 @@ export async function deleteProduct(id: string) {
       where: { id },
     });
 
-    if (!productExists) throw new Error('Product not found');
+    if (!productExists) throw new Error('Không tìm thấy sản phẩm');
 
     await prisma.product.delete({ where: { id } });
 
@@ -128,7 +128,7 @@ export async function deleteProduct(id: string) {
 
     return {
       success: true,
-      message: 'Product deleted successfully',
+      message: 'Sản phẩm đã được xóa thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };
@@ -160,7 +160,7 @@ export async function updateProduct(data: z.infer<typeof updateProductSchema>) {
       where: { id: product.id },
     });
 
-    if (!productExists) throw new Error('Product not found');
+    if (!productExists) throw new Error('Không tìm thấy sản phẩm');
 
     await prisma.product.update({
       where: { id: product.id },

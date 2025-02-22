@@ -9,12 +9,12 @@ import { cartItemSchema, insertCartSchema } from '../validators';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 
-// Calculate cart prices
+// Tính toán giá giỏ hàng
 const calcPrice = (items: CartItem[]) => {
   const itemsPrice = round2(
       items.reduce((acc, item) => acc + Number(item.price) * item.qty, 0)
     ),
-    shippingPrice = round2(itemsPrice > 100 ? 0 : 10),
+    shippingPrice = round2(itemsPrice > 50 ? 0 : 2),
     taxPrice = round2(0.15 * itemsPrice),
     totalPrice = round2(itemsPrice + taxPrice + shippingPrice);
 
@@ -28,28 +28,28 @@ const calcPrice = (items: CartItem[]) => {
 
 export async function addItemToCart(data: CartItem) {
   try {
-    // Check for cart cookie
+    // Kiểm tra cookie giỏ hàng
     const sessionCartId = (await cookies()).get('sessionCartId')?.value;
-    if (!sessionCartId) throw new Error('Cart session not found');
+    if (!sessionCartId) throw new Error('Không tìm thấy phiên giỏ hàng');
 
-    // Get session and user ID
+    // Lấy phiên và ID người dùng
     const session = await auth();
     const userId = session?.user?.id ? (session.user.id as string) : undefined;
 
-    // Get cart
+    // Lấy giỏ hàng
     const cart = await getMyCart();
 
-    // Parse and validate item
+    // Phân tích và xác thực sản phẩm
     const item = cartItemSchema.parse(data);
 
-    // Find product in database
+    // Tìm sản phẩm trong cơ sở dữ liệu
     const product = await prisma.product.findFirst({
       where: { id: item.productId },
     });
-    if (!product) throw new Error('Product not found');
+    if (!product) throw new Error('Không tìm thấy sản phẩm');
 
     if (!cart) {
-      // Create new cart object
+      // Tạo giỏ hàng mới
       const newCart = insertCartSchema.parse({
         userId: userId,
         items: [item],
@@ -57,12 +57,12 @@ export async function addItemToCart(data: CartItem) {
         ...calcPrice([item]),
       });
 
-      // Add to database
+      // Thêm vào cơ sở dữ liệu
       await prisma.cart.create({
         data: newCart,
       });
 
-      // Revalidate product page
+      // Cập nhật trang sản phẩm
       revalidatePath(`/product/${product.slug}`);
 
       return {
@@ -70,31 +70,31 @@ export async function addItemToCart(data: CartItem) {
         message: `${product.name} đã thêm vào giỏ hàng`,
       };
     } else {
-      // Check if item is already in cart
+      // Kiểm tra sản phẩm có trong giỏ hàng không
       const existItem = (cart.items as CartItem[]).find(
         (x) => x.productId === item.productId
       );
 
       if (existItem) {
-        // Check stock
+        // Kiểm tra tồn kho
         if (product.stock < existItem.qty + 1) {
-          throw new Error('Not enough stock');
+          throw new Error('Không đủ hàng trong kho');
         }
 
-        // Increase the quantity
+        // Tăng số lượng
         (cart.items as CartItem[]).find(
           (x) => x.productId === item.productId
         )!.qty = existItem.qty + 1;
       } else {
-        // If item does not exist in cart
-        // Check stock
-        if (product.stock < 1) throw new Error('Not enough stock');
+        // Nếu sản phẩm chưa có trong giỏ hàng
+        // Kiểm tra tồn kho
+        if (product.stock < 1) throw new Error('Không đủ hàng trong kho');
 
-        // Add item to the cart.items
+        // Thêm sản phẩm vào giỏ hàng
         cart.items.push(item);
       }
 
-      // Save to database
+      // Lưu vào cơ sở dữ liệu
       await prisma.cart.update({
         where: { id: cart.id },
         data: {
@@ -108,7 +108,7 @@ export async function addItemToCart(data: CartItem) {
       return {
         success: true,
         message: `${product.name} ${
-          existItem ? 'đã cập nhật trong' : 'thêm vào'
+          existItem ? 'đã cập nhật trong' : 'đã thêm vào'
         } giỏ hàng`,
       };
     }
@@ -121,22 +121,22 @@ export async function addItemToCart(data: CartItem) {
 }
 
 export async function getMyCart() {
-  // Check for cart cookie
+  // Kiểm tra cookie giỏ hàng
   const sessionCartId = (await cookies()).get('sessionCartId')?.value;
-  if (!sessionCartId) throw new Error('Cart session not found');
+  if (!sessionCartId) throw new Error('Không tìm thấy phiên giỏ hàng');
 
-  // Get session and user ID
+  // Lấy phiên và ID người dùng
   const session = await auth();
   const userId = session?.user?.id ? (session.user.id as string) : undefined;
 
-  // Get user cart from database
+  // Lấy giỏ hàng của người dùng từ cơ sở dữ liệu
   const cart = await prisma.cart.findFirst({
     where: userId ? { userId: userId } : { sessionCartId: sessionCartId },
   });
 
   if (!cart) return undefined;
 
-  // Convert decimals and return
+  // Chuyển đổi dữ liệu và trả về
   return convertToPlainObject({
     ...cart,
     items: cart.items as CartItem[],
@@ -149,39 +149,39 @@ export async function getMyCart() {
 
 export async function removeItemFromCart(productId: string) {
   try {
-    // Check for cart cookie
+    // Kiểm tra cookie giỏ hàng
     const sessionCartId = (await cookies()).get('sessionCartId')?.value;
-    if (!sessionCartId) throw new Error('Cart session not found');
+    if (!sessionCartId) throw new Error('Không tìm thấy phiên giỏ hàng');
 
-    // Get Product
+    // Lấy sản phẩm
     const product = await prisma.product.findFirst({
       where: { id: productId },
     });
-    if (!product) throw new Error('Product not found');
+    if (!product) throw new Error('Không tìm thấy sản phẩm');
 
-    // Get user cart
+    // Lấy giỏ hàng của người dùng
     const cart = await getMyCart();
-    if (!cart) throw new Error('Cart not found');
+    if (!cart) throw new Error('Không tìm thấy giỏ hàng');
 
-    // Check for item
+    // Kiểm tra sản phẩm có trong giỏ hàng không
     const exist = (cart.items as CartItem[]).find(
       (x) => x.productId === productId
     );
-    if (!exist) throw new Error('Item not found');
+    if (!exist) throw new Error('Không tìm thấy sản phẩm trong giỏ hàng');
 
-    // Check if only one in qty
+    // Kiểm tra số lượng sản phẩm
     if (exist.qty === 1) {
-      // Remove from cart
+      // Xóa sản phẩm khỏi giỏ hàng
       cart.items = (cart.items as CartItem[]).filter(
         (x) => x.productId !== exist.productId
       );
     } else {
-      // Decrease qty
+      // Giảm số lượng sản phẩm
       (cart.items as CartItem[]).find((x) => x.productId === productId)!.qty =
         exist.qty - 1;
     }
 
-    // Update cart in database
+    // Cập nhật giỏ hàng trong cơ sở dữ liệu
     await prisma.cart.update({
       where: { id: cart.id },
       data: {

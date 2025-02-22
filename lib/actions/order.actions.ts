@@ -14,22 +14,22 @@ import { PAGE_SIZE } from '../constants';
 import { Prisma } from '@prisma/client';
 import { sendPurchaseReceipt } from '@/email';
 
-// Create order and create the order items
+// Tạo đơn hàng và tạo các mục đơn hàng
 export async function createOrder() {
   try {
     const session = await auth();
-    if (!session) throw new Error('User is not authenticated');
+    if (!session) throw new Error('Người dùng chưa được xác thực');
 
     const cart = await getMyCart();
     const userId = session?.user?.id;
-    if (!userId) throw new Error('User not found');
+    if (!userId) throw new Error('Không tìm thấy người dùng');
 
     const user = await getUserById(userId);
 
     if (!cart || cart.items.length === 0) {
       return {
         success: false,
-        message: 'Your cart is empty',
+        message: 'Giỏ hàng của bạn đang trống',
         redirectTo: '/cart',
       };
     }
@@ -37,7 +37,7 @@ export async function createOrder() {
     if (!user.address) {
       return {
         success: false,
-        message: 'No shipping address',
+        message: 'Không có địa chỉ giao hàng',
         redirectTo: '/shipping-address',
       };
     }
@@ -45,12 +45,12 @@ export async function createOrder() {
     if (!user.paymentMethod) {
       return {
         success: false,
-        message: 'No payment method',
+        message: 'Không có phương thức thanh toán',
         redirectTo: '/payment-method',
       };
     }
 
-    // Create order object
+    // Tạo đối tượng đơn hàng
     const order = insertOrderSchema.parse({
       userId: user.id,
       shippingAddress: user.address,
@@ -61,11 +61,11 @@ export async function createOrder() {
       totalPrice: cart.totalPrice,
     });
 
-    // Create a transaction to create order and order items in database
+    // Thực hiện giao dịch để tạo đơn hàng và các mục đơn hàng trong cơ sở dữ liệu
     const insertedOrderId = await prisma.$transaction(async (tx) => {
-      // Create order
+      // Tạo đơn hàng
       const insertedOrder = await tx.order.create({ data: order });
-      // Create order items from the cart items
+      // Tạo các mục đơn hàng từ các mục trong giỏ hàng
       for (const item of cart.items as CartItem[]) {
         await tx.orderItem.create({
           data: {
@@ -75,7 +75,7 @@ export async function createOrder() {
           },
         });
       }
-      // Clear cart
+      // Xóa giỏ hàng
       await tx.cart.update({
         where: { id: cart.id },
         data: {
@@ -90,11 +90,11 @@ export async function createOrder() {
       return insertedOrder.id;
     });
 
-    if (!insertedOrderId) throw new Error('Order not created');
+    if (!insertedOrderId) throw new Error('Không tạo được đơn hàng');
 
     return {
       success: true,
-      message: 'Order created',
+      message: 'Đơn hàng đã được tạo thành công',
       redirectTo: `/order/${insertedOrderId}`,
     };
   } catch (error) {
@@ -103,7 +103,7 @@ export async function createOrder() {
   }
 }
 
-// Get order by id
+// Lấy đơn hàng theo ID
 export async function getOrderById(orderId: string) {
   const data = await prisma.order.findFirst({
     where: {
@@ -118,10 +118,10 @@ export async function getOrderById(orderId: string) {
   return convertToPlainObject(data);
 }
 
-// Create new paypal order
+// Tạo đơn hàng PayPal mới
 export async function createPayPalOrder(orderId: string) {
   try {
-    // Get order from database
+    // Lấy đơn hàng từ cơ sở dữ liệu
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -129,10 +129,10 @@ export async function createPayPalOrder(orderId: string) {
     });
 
     if (order) {
-      // Create paypal order
+      // Tạo đơn hàng PayPal
       const paypalOrder = await paypal.createOrder(Number(order.totalPrice));
 
-      // Update order with paypal order id
+      // Cập nhật đơn hàng với ID đơn hàng PayPal
       await prisma.order.update({
         where: { id: orderId },
         data: {
@@ -151,27 +151,27 @@ export async function createPayPalOrder(orderId: string) {
         data: paypalOrder.id,
       };
     } else {
-      throw new Error('Order not found');
+      throw new Error('Không tìm thấy đơn hàng');
     }
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
 }
 
-// Approve paypal order and update order to paid
+// Phê duyệt đơn hàng PayPal và cập nhật đơn hàng thành đã thanh toán
 export async function approvePayPalOrder(
   orderId: string,
   data: { orderID: string }
 ) {
   try {
-    // Get order from database
+    // Lấy đơn hàng từ cơ sở dữ liệu
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
       },
     });
 
-    if (!order) throw new Error('Order not found');
+    if (!order) throw new Error('Không tìm thấy đơn hàng');
 
     const captureData = await paypal.capturePayment(data.orderID);
 
@@ -180,10 +180,10 @@ export async function approvePayPalOrder(
       captureData.id !== (order.paymentResult as PaymentResult)?.id ||
       captureData.status !== 'COMPLETED'
     ) {
-      throw new Error('Error in PayPal payment');
+      throw new Error('Lỗi trong thanh toán PayPal');
     }
 
-    // Update order to paid
+    // Cập nhật đơn hàng thành đã thanh toán
     await updateOrderToPaid({
       orderId,
       paymentResult: {
@@ -199,14 +199,14 @@ export async function approvePayPalOrder(
 
     return {
       success: true,
-      message: 'Your order has been paid',
+      message: 'Đơn hàng của bạn đã được thanh toán',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
 }
 
-// Update order to paid
+// Cập nhật đơn hàng thành đã thanh toán
 export async function updateOrderToPaid({
   orderId,
   paymentResult,
@@ -214,7 +214,7 @@ export async function updateOrderToPaid({
   orderId: string;
   paymentResult?: PaymentResult;
 }) {
-  // Get order from database
+  // Lấy đơn hàng từ cơ sở dữ liệu
   const order = await prisma.order.findFirst({
     where: {
       id: orderId,
@@ -224,13 +224,13 @@ export async function updateOrderToPaid({
     },
   });
 
-  if (!order) throw new Error('Order not found');
+  if (!order) throw new Error('Không tìm thấy đơn hàng');
 
-  if (order.isPaid) throw new Error('Order is already paid');
+  if (order.isPaid) throw new Error('Đơn hàng đã được thanh toán rồi');
 
-  // Transaction to update order and account for product stock
+  // Thực hiện giao dịch để cập nhật đơn hàng và điều chỉnh tồn kho sản phẩm
   await prisma.$transaction(async (tx) => {
-    // Iterate over products and update stock
+    // Duyệt qua các sản phẩm và cập nhật tồn kho
     for (const item of order.orderitems) {
       await tx.product.update({
         where: { id: item.productId },
@@ -238,7 +238,7 @@ export async function updateOrderToPaid({
       });
     }
 
-    // Set the order to paid
+    // Đánh dấu đơn hàng là đã thanh toán
     await tx.order.update({
       where: { id: orderId },
       data: {
@@ -249,7 +249,7 @@ export async function updateOrderToPaid({
     });
   });
 
-  // Get updated order after transaction
+  // Lấy lại đơn hàng đã cập nhật sau giao dịch
   const updatedOrder = await prisma.order.findFirst({
     where: { id: orderId },
     include: {
@@ -258,7 +258,7 @@ export async function updateOrderToPaid({
     },
   });
 
-  if (!updatedOrder) throw new Error('Order not found');
+  if (!updatedOrder) throw new Error('Không tìm thấy đơn hàng');
 
   sendPurchaseReceipt({
     order: {
@@ -269,7 +269,7 @@ export async function updateOrderToPaid({
   });
 }
 
-// Get user's orders
+// Lấy đơn hàng của người dùng
 export async function getMyOrders({
   limit = PAGE_SIZE,
   page,
@@ -278,7 +278,7 @@ export async function getMyOrders({
   page: number;
 }) {
   const session = await auth();
-  if (!session) throw new Error('User is not authorized');
+  if (!session) throw new Error('Người dùng chưa được ủy quyền');
 
   const data = await prisma.order.findMany({
     where: { userId: session?.user?.id },
@@ -302,19 +302,19 @@ type SalesDataType = {
   totalSales: number;
 }[];
 
-// Get sales data and order summary
+// Lấy dữ liệu doanh số và tổng hợp đơn hàng
 export async function getOrderSummary() {
-  // Get counts for each resource
+  // Lấy số lượng cho từng tài nguyên
   const ordersCount = await prisma.order.count();
   const productsCount = await prisma.product.count();
   const usersCount = await prisma.user.count();
 
-  // Calculate the total sales
+  // Tính tổng doanh số
   const totalSales = await prisma.order.aggregate({
     _sum: { totalPrice: true },
   });
 
-  // Get monthly sales
+  // Lấy doanh số theo tháng
   const salesDataRaw = await prisma.$queryRaw<
     Array<{ month: string; totalSales: Prisma.Decimal }>
   >`SELECT to_char("createdAt", 'MM/YY') as "month", sum("totalPrice") as "totalSales" FROM "Order" GROUP BY to_char("createdAt", 'MM/YY')`;
@@ -324,7 +324,7 @@ export async function getOrderSummary() {
     totalSales: Number(entry.totalSales),
   }));
 
-  // Get latest sales
+  // Lấy các đơn hàng mới nhất
   const latestSales = await prisma.order.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
@@ -343,7 +343,7 @@ export async function getOrderSummary() {
   };
 }
 
-// Get all orders
+// Lấy tất cả các đơn hàng
 export async function getAllOrders({
   limit = PAGE_SIZE,
   page,
@@ -383,7 +383,7 @@ export async function getAllOrders({
   };
 }
 
-// Delete an order
+// Xóa đơn hàng
 export async function deleteOrder(id: string) {
   try {
     await prisma.order.delete({ where: { id } });
@@ -399,20 +399,23 @@ export async function deleteOrder(id: string) {
   }
 }
 
-// Update COD order to paid
+// Cập nhật đơn hàng COD thành đã thanh toán
 export async function updateOrderToPaidCOD(orderId: string) {
   try {
     await updateOrderToPaid({ orderId });
 
     revalidatePath(`/order/${orderId}`);
 
-    return { success: true, message: 'Order marked as paid' };
+    return {
+      success: true,
+      message: 'Đơn hàng đã được đánh dấu là đã thanh toán',
+    };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
 }
 
-// Update COD order to delivered
+// Cập nhật đơn hàng COD thành đã giao
 export async function deliverOrder(orderId: string) {
   try {
     const order = await prisma.order.findFirst({
@@ -421,8 +424,8 @@ export async function deliverOrder(orderId: string) {
       },
     });
 
-    if (!order) throw new Error('Order not found');
-    if (!order.isPaid) throw new Error('Order is not paid');
+    if (!order) throw new Error('Không tìm thấy đơn hàng');
+    if (!order.isPaid) throw new Error('Đơn hàng chưa được thanh toán');
 
     await prisma.order.update({
       where: { id: orderId },

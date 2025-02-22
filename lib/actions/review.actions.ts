@@ -7,28 +7,28 @@ import { auth } from '@/auth';
 import { prisma } from '@/db/prisma';
 import { revalidatePath } from 'next/cache';
 
-// Create & Update Reviews
+// Tạo & Cập nhật đánh giá
 export async function createUpdateReview(
   data: z.infer<typeof insertReviewSchema>
 ) {
   try {
     const session = await auth();
-    if (!session) throw new Error('User is not authenticated');
+    if (!session) throw new Error('Người dùng chưa được xác thực');
 
-    // Validate and store the review
+    // Validate và lưu đánh giá
     const review = insertReviewSchema.parse({
       ...data,
       userId: session?.user?.id,
     });
 
-    // Get product that is being reviewed
+    // Lấy sản phẩm đang được đánh giá
     const product = await prisma.product.findFirst({
       where: { id: review.productId },
     });
 
-    if (!product) throw new Error('Product not found');
+    if (!product) throw new Error('Không tìm thấy sản phẩm');
 
-    // Check if user already reviewed
+    // Kiểm tra xem người dùng đã đánh giá chưa
     const reviewExists = await prisma.review.findFirst({
       where: {
         productId: review.productId,
@@ -38,7 +38,7 @@ export async function createUpdateReview(
 
     await prisma.$transaction(async (tx) => {
       if (reviewExists) {
-        // Update review
+        // Cập nhật đánh giá
         await tx.review.update({
           where: { id: reviewExists.id },
           data: {
@@ -48,22 +48,22 @@ export async function createUpdateReview(
           },
         });
       } else {
-        // Create review
+        // Tạo đánh giá mới
         await tx.review.create({ data: review });
       }
 
-      // Get avg rating
+      // Tính điểm trung bình đánh giá
       const averageRating = await tx.review.aggregate({
         _avg: { rating: true },
         where: { productId: review.productId },
       });
 
-      // Get number of reviews
+      // Lấy số lượng đánh giá
       const numReviews = await tx.review.count({
         where: { productId: review.productId },
       });
 
-      // Update the rating and numReviews in product table
+      // Cập nhật điểm đánh giá và số lượng đánh giá trong bảng sản phẩm
       await tx.product.update({
         where: { id: review.productId },
         data: {
@@ -77,14 +77,14 @@ export async function createUpdateReview(
 
     return {
       success: true,
-      message: 'Review Updated Successfully',
+      message: 'Đánh giá đã được cập nhật thành công',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
 }
 
-// Get all reviews for a product
+// Lấy tất cả đánh giá của một sản phẩm
 export async function getReviews({ productId }: { productId: string }) {
   const data = await prisma.review.findMany({
     where: {
@@ -105,7 +105,7 @@ export async function getReviews({ productId }: { productId: string }) {
   return { data };
 }
 
-// Get a review written by the current user
+// Lấy đánh giá của người dùng hiện tại cho một sản phẩm
 export async function getReviewByProductId({
   productId,
 }: {
@@ -113,7 +113,7 @@ export async function getReviewByProductId({
 }) {
   const session = await auth();
 
-  if (!session) throw new Error('User is not authenticated');
+  if (!session) throw new Error('Người dùng chưa được xác thực');
 
   return await prisma.review.findFirst({
     where: {
