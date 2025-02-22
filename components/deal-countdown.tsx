@@ -5,8 +5,8 @@ import { Button } from './ui/button';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-// Static target date (replace with desired date)
-const TARGET_DATE = new Date('2025-01-20T00:00:00');
+// Static target date
+const TARGET_DATE = new Date('2025-02-25T00:00:00');
 
 // Function to calculate the time remaining
 const calculateTimeRemaining = (targetDate: Date) => {
@@ -89,8 +89,8 @@ const DealCountdown = () => {
   return (
     <section className='grid grid-cols-1 md:grid-cols-2 my-20'>
       <div className='flex flex-col gap-2 justify-center'>
-        <h3 className='text-3xl font-bold'>Deal Of The Month</h3>
-        <p>Don&apos;t miss out! 🎁🛒</p>
+        <h3 className='text-3xl font-bold'>Flash Sale của Tháng</h3>
+        <p>Đừng bỏ lỡ! 🎁🛒</p>
         <ul className='grid grid-cols-4'>
           <StatBox label='Days' value={time.days} />
           <StatBox label='Hours' value={time.hours} />
